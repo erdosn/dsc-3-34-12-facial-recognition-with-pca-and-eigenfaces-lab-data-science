@@ -29,12 +29,11 @@ Import necessary libraries for above task
 
 
 ```python
-# Import necessary libraries 
+import matplotlib.pyplot as plt
 
-
-# Code here 
-
-
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.decomposition import PCA
 ```
 
 ## Olivetti Dataset
@@ -53,13 +52,14 @@ We can `datasets` from `sklearn` to load the data. If the data isn't available o
 
 
 ```python
-# Importing olivetti dataset
-
-
-# Code here 
-
-
+# Importing olivetti dataset
+from sklearn import datasets
+faces = datasets.fetch_olivetti_faces()
+faces.data.shape
 ```
+
+    downloading Olivetti faces from https://ndownloader.figshare.com/files/5976027 to /Users/rafael/scikit_learn_data
+
 
 
 
@@ -74,10 +74,10 @@ Create feature and target datasets from the `faces` dataset created above.
 
 ```python
 # Create feature and target set
-
-
-# Code here 
-
+X = faces.data
+y = faces.target
+# target_names = faces.target_names
+print(X.shape, y.shape)
 
 ```
 
@@ -90,11 +90,12 @@ Create subplots and run a loop to show first 20 images in the `faces` dataset. Y
 
 
 ```python
+fig = plt.figure(figsize=(12, 6))
 
-
-# Code here 
-
-
+# plot several images
+for i in range(25):
+    ax = fig.add_subplot(5, 5, i + 1, xticks=[], yticks=[])
+    ax.imshow(faces.images[i], cmap=plt.cm.gray)
 ```
 
 
@@ -108,11 +109,8 @@ Split the features and  target variables for training and testing purpose and sh
 
 
 ```python
-
-
-# Code here 
-
-
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+print(X_train.shape, X_test.shape)
 ```
 
     (320, 4096) (80, 4096)
@@ -126,11 +124,9 @@ We will now use scikit-learn’s PCA class to perform the dimensionality reducti
 
 
 ```python
-
-
-# Code here 
-
-
+from sklearn import decomposition
+pca = decomposition.PCA(n_components=150, whiten=True)
+pca.fit(X_train)
 ```
 
 
@@ -148,6 +144,7 @@ One interesting part of PCA is that it computes the “mean” face, which can b
 
 ```python
 # Show the mean face 
+plt.imshow(pca.mean_.reshape(faces.images[0].shape),cmap=plt.cm.gray)
 
 
 # Code here 
@@ -158,7 +155,7 @@ One interesting part of PCA is that it computes the “mean” face, which can b
 
 
 
-    <matplotlib.image.AxesImage at 0x1a1d211828>
+    <matplotlib.image.AxesImage at 0x1a14051b00>
 
 
 
@@ -172,13 +169,11 @@ The principal components measure deviations about this mean along orthogonal axe
 
 
 ```python
-# Visualize Principal Components
-
-
-
-# Code here 
-
-
+fig = plt.figure(figsize=(12, 6))
+for i in range(25):
+    ax = fig.add_subplot(5, 5, i + 1, xticks=[], yticks=[])
+    ax.imshow(pca.components_[i].reshape(faces.images[0].shape),
+              cmap=plt.cm.gray)
 ```
 
 
@@ -197,13 +192,11 @@ Check the shape of PCA components and transform test and train sets with PCA. Sh
 
 
 ```python
-# Transform train and test datasets using trained PCA algorithm
-
-
-
-# Code here 
-
-
+print(pca.components_.shape)
+# apply PCA transformation to training data
+X_train_pca = pca.transform(X_train)
+X_test_pca = pca.transform(X_test)
+print(X_train_pca.shape, X_test_pca.shape)
 ```
 
     (150, 4096)
@@ -218,13 +211,9 @@ After preprocessing our face data with PCA, we can run an SVM classifier to make
 
 
 ```python
-# Create and train an instance of SVM classifier
-
-
-
-# Code here 
-
-
+from sklearn import svm
+clf = svm.SVC(C=5., gamma=0.001)
+clf.fit(X_train_pca, y_train)
 ```
 
 
@@ -245,12 +234,16 @@ Finally, we can evaluate how well this classification did. First, we might plot 
 
 
 ```python
-# PRedict label for random test images and show the result
-
-
-# Code here 
-
-
+import numpy as np
+fig = plt.figure(figsize=(16, 8))
+for i in range(50):
+    ax = fig.add_subplot(5, 10, i + 1, xticks=[], yticks=[])
+    ax.imshow(X_test[i].reshape(faces.images[0].shape),
+              cmap=plt.cm.gray)
+    y_pred = clf.predict(X_test_pca[i, np.newaxis])[0]
+    color = ('black' if y_pred == y_test[i] else 'red')
+    ax.set_title(faces.target[y_pred],
+                 fontsize='small', color=color)
 ```
 
 
@@ -268,50 +261,56 @@ Predict the labels for complete test dataset and calculate the performance of cl
 # Create a classification report
 
 
-# Code here 
+# Code here # Create a classification report
+from sklearn import metrics
+y_pred = clf.predict(X_test_pca)
+print(metrics.classification_report(y_test, y_pred))
 
 
 ```
 
                  precision    recall  f1-score   support
     
-              0       1.00      1.00      1.00         2
-              1       1.00      1.00      1.00         3
-              2       1.00      1.00      1.00         3
-              4       0.67      1.00      0.80         2
+              0       1.00      1.00      1.00         1
+              1       1.00      1.00      1.00         1
+              2       1.00      0.67      0.80         3
+              3       1.00      1.00      1.00         3
+              4       0.33      1.00      0.50         1
               5       1.00      1.00      1.00         2
-              7       1.00      1.00      1.00         2
-              8       1.00      1.00      1.00         4
+              6       1.00      1.00      1.00         3
+              7       1.00      1.00      1.00         3
+              8       1.00      1.00      1.00         1
               9       1.00      1.00      1.00         3
-             10       1.00      1.00      1.00         4
-             11       1.00      1.00      1.00         2
-             12       1.00      1.00      1.00         1
+             10       1.00      1.00      1.00         1
+             11       1.00      1.00      1.00         1
              13       1.00      1.00      1.00         2
-             14       1.00      1.00      1.00         2
-             15       1.00      1.00      1.00         2
+             14       1.00      1.00      1.00         3
              16       1.00      1.00      1.00         3
              17       1.00      1.00      1.00         1
-             18       1.00      1.00      1.00         2
-             19       1.00      1.00      1.00         3
-             20       0.50      1.00      0.67         2
+             18       1.00      1.00      1.00         1
+             19       1.00      1.00      1.00         1
+             20       0.50      1.00      0.67         1
              21       1.00      1.00      1.00         2
-             23       1.00      1.00      1.00         1
+             22       1.00      1.00      1.00         3
+             23       1.00      1.00      1.00         3
+             24       1.00      1.00      1.00         2
              25       1.00      1.00      1.00         1
-             26       1.00      1.00      1.00         1
-             27       1.00      1.00      1.00         4
-             28       1.00      1.00      1.00         5
-             29       1.00      1.00      1.00         1
-             30       1.00      1.00      1.00         2
-             31       1.00      1.00      1.00         2
-             33       1.00      1.00      1.00         1
-             34       1.00      0.67      0.80         3
+             26       1.00      1.00      1.00         5
+             27       1.00      1.00      1.00         1
+             28       1.00      1.00      1.00         1
+             29       1.00      1.00      1.00         2
+             30       1.00      1.00      1.00         4
+             31       1.00      0.60      0.75         5
+             32       1.00      1.00      1.00         1
+             33       1.00      1.00      1.00         4
+             34       1.00      1.00      1.00         2
              35       1.00      1.00      1.00         2
              36       1.00      1.00      1.00         2
              37       1.00      1.00      1.00         1
              38       1.00      1.00      1.00         2
-             39       1.00      0.60      0.75         5
+             39       1.00      1.00      1.00         2
     
-    avg / total       0.98      0.96      0.96        80
+    avg / total       0.99      0.96      0.97        80
     
 
 
@@ -321,18 +320,16 @@ Thats pretty good , we can identify the wrong predictions from this report and i
 
 
 ```python
-# Create a confusion matrix
-
-
-# Code here 
-
+# Create a confusion matrix
+plt.figure(figsize=(10,10))
+plt.imshow(metrics.confusion_matrix(y_test, y_pred))
 
 ```
 
 
 
 
-    <matplotlib.image.AxesImage at 0x1a21423438>
+    <matplotlib.image.AxesImage at 0x1a0906cef0>
 
 
 
@@ -349,59 +346,67 @@ Scikit-learn's ability to chain together different algorithms to create machine 
 
 ```python
 # Chain PCA and SVM to run above experiment in a single execution. 
+from sklearn.pipeline import Pipeline
+clf = Pipeline([('pca', decomposition.PCA(n_components=150, whiten=True)),
+                ('svm', svm.LinearSVC(C=1.0))])
 
+clf.fit(X_train, y_train)
 
-# Code here 
+y_pred = clf.predict(X_test)
 
-
+print(metrics.confusion_matrix(y_pred, y_test))
+print(metrics.classification_report(y_test, y_pred))
 ```
 
     [[1 0 0 ... 0 0 0]
-     [0 3 0 ... 0 0 0]
-     [0 0 3 ... 0 0 0]
+     [0 1 0 ... 0 0 0]
+     [0 0 2 ... 0 0 0]
      ...
      [0 0 0 ... 1 0 0]
      [0 0 0 ... 0 2 0]
-     [0 0 0 ... 0 0 5]]
+     [0 0 0 ... 0 0 2]]
                  precision    recall  f1-score   support
     
-              0       1.00      0.50      0.67         2
-              1       1.00      1.00      1.00         3
-              2       1.00      1.00      1.00         3
-              4       0.67      1.00      0.80         2
+              0       1.00      1.00      1.00         1
+              1       1.00      1.00      1.00         1
+              2       1.00      0.67      0.80         3
+              3       1.00      1.00      1.00         3
+              4       0.50      1.00      0.67         1
               5       1.00      1.00      1.00         2
-              7       1.00      1.00      1.00         2
-              8       1.00      1.00      1.00         4
-              9       0.75      1.00      0.86         3
-             10       1.00      1.00      1.00         4
-             11       1.00      1.00      1.00         2
-             12       0.50      1.00      0.67         1
+              6       1.00      1.00      1.00         3
+              7       1.00      1.00      1.00         3
+              8       1.00      1.00      1.00         1
+              9       1.00      1.00      1.00         3
+             10       1.00      1.00      1.00         1
+             11       1.00      1.00      1.00         1
              13       1.00      1.00      1.00         2
-             14       1.00      1.00      1.00         2
-             15       1.00      0.50      0.67         2
+             14       1.00      1.00      1.00         3
              16       1.00      1.00      1.00         3
              17       1.00      1.00      1.00         1
-             18       1.00      1.00      1.00         2
-             19       1.00      1.00      1.00         3
-             20       1.00      1.00      1.00         2
+             18       1.00      1.00      1.00         1
+             19       1.00      1.00      1.00         1
+             20       0.50      1.00      0.67         1
              21       1.00      1.00      1.00         2
-             23       1.00      1.00      1.00         1
+             22       1.00      1.00      1.00         3
+             23       1.00      1.00      1.00         3
+             24       1.00      1.00      1.00         2
              25       1.00      1.00      1.00         1
-             26       1.00      1.00      1.00         1
-             27       1.00      1.00      1.00         4
-             28       1.00      1.00      1.00         5
-             29       1.00      1.00      1.00         1
-             30       1.00      1.00      1.00         2
-             31       1.00      1.00      1.00         2
-             33       1.00      1.00      1.00         1
-             34       1.00      1.00      1.00         3
-             35       1.00      0.50      0.67         2
+             26       1.00      1.00      1.00         5
+             27       1.00      1.00      1.00         1
+             28       1.00      1.00      1.00         1
+             29       1.00      1.00      1.00         2
+             30       1.00      1.00      1.00         4
+             31       1.00      1.00      1.00         5
+             32       1.00      1.00      1.00         1
+             33       1.00      1.00      1.00         4
+             34       1.00      0.50      0.67         2
+             35       1.00      1.00      1.00         2
              36       1.00      1.00      1.00         2
              37       1.00      1.00      1.00         1
              38       1.00      1.00      1.00         2
-             39       1.00      1.00      1.00         5
+             39       1.00      1.00      1.00         2
     
-    avg / total       0.98      0.96      0.96        80
+    avg / total       0.99      0.97      0.98        80
     
 
 
